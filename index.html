@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calcul Safari</title>
+<meta name="theme-color" content="#2f6fed">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calcul Safari">
+
+<style>
+:root{--bg:#2f6fed;--card:#fff8dc;--ink:#1f2a5c;--sun:#ffc933;--ok:#1fa35c;--ko:#e5484d;--soft:#e6dcae;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14204d;--card:#27315f;--ink:#fff3c4;--ok:#4cd08a;--ko:#ff7b80;--soft:#3b4680;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14204d;--card:#27315f;--ink:#fff3c4;--ok:#4cd08a;--ko:#ff7b80;--soft:#3b4680;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Baloo 2","Trebuchet MS","Comic Sans MS",system-ui,sans-serif;display:flex;justify-content:center;padding:16px}
+main{width:100%;max-width:460px;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;text-align:center;font-size:2.1rem;color:#fff;line-height:1.1}
+.card{background:var(--card);border-radius:28px;padding:20px;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+h2{margin:0 0 8px;font-size:1.2rem}
+.hearts{text-align:center;font-size:1.7rem;letter-spacing:3px;color:#fff}
+.op{display:block;width:100%;text-align:left;margin-bottom:12px;padding:14px 16px;border:3px solid var(--ink);border-radius:20px;background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+.op b{font-size:1.35rem}.op span{float:right;font-weight:800}
+.op small{display:block;font-size:1rem}
+.bar{height:14px;background:var(--soft);border-radius:9px;overflow:hidden;margin:8px 0 6px}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.go{width:100%;padding:16px;border:0;border-radius:20px;background:var(--sun);color:#1f2a5c;font:inherit;font-size:1.5rem;font-weight:800;cursor:pointer;box-shadow:0 5px 0 #b88a00}
+.go:active{transform:translateY(4px);box-shadow:0 1px 0 #b88a00}
+.chip{padding:10px 18px;border:3px solid var(--ink);border-radius:16px;background:transparent;color:var(--ink);font:inherit;font-size:1.1rem;font-weight:700;cursor:pointer}
+button:focus-visible{outline:4px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px var(--ink)}
+.hud{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1.1rem}
+.q{text-align:center;font-size:3rem;font-weight:800;margin:6px 0 18px}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ans button{padding:18px 6px;border:3px solid var(--ink);border-radius:20px;background:transparent;color:var(--ink);font:inherit;font-size:1.8rem;font-weight:800;cursor:pointer}
+.ans button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.ans button.ko{background:var(--ko);border-color:var(--ko);color:#fff}
+.msg{min-height:2.2em;text-align:center;font-size:1.2rem;font-weight:700;margin-top:14px}
+.big{font-size:4rem;text-align:center;margin:0}
+.timer{font-size:3.4rem;font-weight:800;text-align:center;margin:8px 0}
+.center{text-align:center}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>🦁 Calcul Safari</h1>
+<div class="hearts" id="hearts" aria-live="polite"></div>
+
+<section id="home" class="card">
+  <h2>Choisis ton aventure</h2>
+  <div id="ops"></div>
+  <p class="center" style="margin:0">5 cœurs ❤️ : une erreur = un cœur perdu.</p>
+</section>
+
+<section id="game" class="card" hidden>
+  <div class="hud"><span id="lv"></span><span id="num"></span><span id="streak"></span></div>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="q" id="q" aria-live="polite"></div>
+  <div class="ans" id="ans"></div>
+  <div class="msg" id="msg" aria-live="polite"></div>
+</section>
+
+<section id="end" class="card" hidden>
+  <p class="big" id="emoji"></p>
+  <h2 class="center" id="res"></h2>
+  <p class="center" id="comment"></p>
+  <button class="go" id="again"></button>
+  <p class="center"><button class="chip" id="menu">Retour au menu</button></p>
+</section>
+
+<section id="lock" class="card" hidden>
+  <p class="big">😴</p>
+  <h2 class="center">Plus de cœurs !</h2>
+  <p class="center">Le temps de te reposer. Tes 5 cœurs reviennent dans :</p>
+  <div class="timer" id="timer">30:00</div>
+</section>
+</main>
+
+<script>
+(function(){
+var OPS=["+","−","×","÷"], NAMES={"+":"Addition","−":"Soustraction","×":"Multiplication","÷":"Division"};
+var ICON={"+":"➕","−":"➖","×":"✖️","÷":"➗"};
+var MAXL=1000, PER=5, NEED=4, MAXH=5, WAIT=30*60*1000, KEY="calcul-safari-v2";
+var S={p:{"+":1,"−":1,"×":1,"÷":1},h:MAXH,lock:0};
+var op="+", n=0, ok=0, streak=0, answer=0, locked=false, tick=null, passed=false;
+var $=function(id){return document.getElementById(id)};
+var rnd=function(a,b){return a+Math.floor(Math.random()*(b-a+1))};
+
+function load(){try{var v=JSON.parse(localStorage.getItem(KEY));if(v&&v.p){S=v;OPS.forEach(function(o){if(!S.p[o])S.p[o]=1})}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function show(id){["home","game","end","lock"].forEach(function(s){$(s).hidden=s!==id})}
+function beep(f,d){try{var C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d);setTimeout(function(){c.close()},d*1000+100)}catch(e){}}
+
+function rank(L){return L>=MAXL?["🏆","Légende"]:L>=400?["🚀","Astronaute"]:L>=150?["🐘","Éléphant"]:L>=50?["🦁","Lion"]:L>=10?["🐯","Tigre"]:["🌱","Pousse"]}
+function renderHearts(){var s="";for(var i=0;i<MAXH;i++)s+=i<S.h?"❤️":"🤍";$("hearts").textContent=s}
+
+/* Difficulté : plus le niveau monte, plus les nombres grandissent, dans chaque opération */
+function makeQ(o,L){
+  var m=10+Math.floor(L*2.5), a,b,r;
+  var am=Math.min(12,2+Math.floor(L/4))+Math.floor(Math.max(0,L-40)/25);
+  var bm=Math.min(12,2+Math.floor(L/3))+Math.floor(Math.max(0,L-30)/8);
+  if(o==="+"){a=rnd(1,m);b=rnd(1,m);r=a+b}
+  else if(o==="−"){a=rnd(2,m);b=rnd(1,a);r=a-b}
+  else if(o==="×"){a=rnd(2,am);b=rnd(2,bm);r=a*b}
+  else{b=rnd(2,am);r=rnd(2,bm);a=b*r}
+  return{t:a+" "+o+" "+b+" = ?",r:r};
+}
+
+function renderHome(){
+  renderHearts();
+  var h="";
+  OPS.forEach(function(o){
+    var L=S.p[o],k=rank(L),done=L>MAXL;
+    h+='<button class="op" data-o="'+o+'"><b>'+ICON[o]+" "+NAMES[o]+'</b><span>'+k[0]+" "+(done?"Terminé":"Niv. "+L)+'</span>'+
+       '<div class="bar"><i style="width:'+Math.min(100,(L-1)/MAXL*100)+'%"></i></div><small>'+k[1]+" · "+Math.min(L,MAXL)+" / "+MAXL+'</small></button>';
+  });
+  $("ops").innerHTML=h;show("home");
+}
+
+function checkLock(){
+  if(S.lock&&Date.now()>=S.lock){S.lock=0;S.h=MAXH;save()}
+  if(S.lock){showLock();return true}
+  return false;
+}
+function showLock(){
+  renderHearts();show("lock");clearInterval(tick);
+  function upd(){
+    var left=S.lock-Date.now();
+    if(left<=0){clearInterval(tick);S.lock=0;S.h=MAXH;save();renderHome();return}
+    var s=Math.ceil(left/1000);$("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  }
+  upd();tick=setInterval(upd,1000);
+}
+
+function startLevel(o){
+  if(checkLock())return;
+  op=o;n=0;ok=0;streak=0;
+  if(S.p[op]>MAXL){renderHome();return}
+  show("game");next();
+}
+
+function next(){
+  if(n>=PER)return endLevel();
+  n++;locked=false;
+  var L=S.p[op],q=makeQ(op,L);answer=q.r;
+  $("lv").textContent=ICON[op]+" Niveau "+L;$("num").textContent=n+" / "+PER;$("streak").textContent="🔥 "+streak;
+  $("q").textContent=q.t;$("msg").textContent="";$("prog").style.width=((n-1)/PER*100)+"%";
+  var set={};set[answer]=1;var sp=Math.max(3,Math.round(answer*.2));
+  while(Object.keys(set).length<4){var c=answer+rnd(-sp,sp);if(c>=0)set[c]=1;if(Math.random()<.25)sp++}
+  var opts=Object.keys(set).map(Number).sort(function(){return Math.random()-.5});
+  $("ans").innerHTML="";
+  opts.forEach(function(v){var b=document.createElement("button");b.textContent=v;b.dataset.v=v;$("ans").appendChild(b)});
+}
+
+function onAnswer(e){
+  var b=e.target.closest("button");if(!b||locked)return;locked=true;
+  var good=parseInt(b.dataset.v,10)===answer;
+  if(good){
+    ok++;streak++;b.classList.add("ok");beep(660,.15);
+    $("msg").textContent=streak>=3?"Super série !":["Bravo !","Bien joué !","Exact !"][rnd(0,2)];
+  }else{
+    streak=0;S.h=Math.max(0,S.h-1);save();renderHearts();b.classList.add("ko");beep(180,.25);
+    Array.prototype.forEach.call($("ans").children,function(x){if(parseInt(x.dataset.v,10)===answer)x.classList.add("ok")});
+    $("msg").textContent="Presque ! La réponse était "+answer+".";
+  }
+  $("streak").textContent="🔥 "+streak;$("prog").style.width=(n/PER*100)+"%";
+  if(S.h===0){S.lock=Date.now()+WAIT;save();setTimeout(showLock,1800);return}
+  setTimeout(next,good?800:1800);
+}
+
+function endLevel(){
+  var L=S.p[op];passed=ok>=NEED;
+  if(passed){S.p[op]=L+1;save()}
+  $("emoji").textContent=passed?(L>=MAXL?"🏆":"🎉"):"💪";
+  $("res").textContent=ok+" bonnes réponses sur "+PER;
+  $("comment").textContent=passed?(L>=MAXL?"Tu as terminé le niveau 1000 ! Légende du calcul !":"Niveau "+L+" réussi !"):"Il faut "+NEED+" bonnes réponses pour passer. Retente !";
+  $("again").textContent=passed?(L>=MAXL?"Bravo !":"Niveau suivant"):"Réessayer";
+  show("end");beep(passed?880:300,.3);
+}
+
+load();
+$("ops").addEventListener("click",function(e){var b=e.target.closest(".op");if(b)startLevel(b.dataset.o)});
+$("ans").addEventListener("click",onAnswer);
+$("again").onclick=function(){passed&&S.p[op]>MAXL?renderHome():startLevel(op)};
+$("menu").onclick=renderHome;
+if(!checkLock())renderHome();
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
